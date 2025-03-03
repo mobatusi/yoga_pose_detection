@@ -10,3 +10,4 @@ Use a pretrained MediaPipe Pose model to extract body landmarks and classify yog
 
 # References
 - [Yoga Pose Detection Using MediaPipe Pose](https://www.educative.io/projects/yoga-pose-detection-using-mediapipe-pose)
+## Test
