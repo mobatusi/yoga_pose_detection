@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Uploader</title>
+    <!-- Link to the external CSS file -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"> 
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        function displayImage(imageId, file) {
+            const imgElement = document.getElementById(imageId);
+            imgElement.src = URL.createObjectURL(file);
+        }
+
+        // Task 15 & Task 16: Handle Upload Request to Backend
+    
+
+    </script>
+</head>
+<body>
+    <h1>Detect Yoga Pose Using Mediapipe</h1>
+    <!-- Task 13: Design the frontend of the application -->
+
+
+</body>
+</html>
