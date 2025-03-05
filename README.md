@@ -20,5 +20,8 @@ For this project, consider the following folders and files:
 Task 1: Import Libraries
 - In this task, import the following libraries to be used in the project in different files:
 
+Task 2: Landmark Detection with Mediapipe
+- In this task, you’ll use the mediapipe library to detect, extract, and display the values of landmarks from an image.
+
 # References
 - [Yoga Pose Detection Using MediaPipe Pose](https://www.educative.io/projects/yoga-pose-detection-using-mediapipe-pose)
