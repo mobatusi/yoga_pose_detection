@@ -340,6 +340,27 @@ def save_image_to_csv(folder_path, output_csv):
 
 
 # Task 8 --- Load and Preprocess the Data
+def load_and_preprocess_data(csv_path):
+    '''
+    Load and preprocess data from a CSV file.
+    
+    Args:
+        csv_path (str): Path to the CSV file containing the data
+        
+    Returns:
+        tuple: (features DataFrame, numeric labels)
+    '''
+    # Read the CSV file into a DataFrame
+    df = pd.read_csv(csv_path)
+    
+    # Drop the Image_ID column
+    df = df.drop('Image_ID', axis=1)
+    
+    # Separate features and labels
+    features = df.drop('Class_Label', axis=1)
+    labels = df['Class_Label']
+    
+    return features, labels
 
 
 if __name__ == '__main__':
@@ -361,3 +382,13 @@ if __name__ == '__main__':
     # Task 7 --- Call the save_image_to_csv() function
     save_image_to_csv('PoseDetection/training', 'training_data.csv')
     save_image_to_csv('PoseDetection/testing', 'testing_data.csv')
+    
+    # Task 8 --- Load and preprocess the data
+    train_features, train_labels = load_and_preprocess_data('PoseDetection/training/training_data.csv')
+    test_features, test_labels = load_and_preprocess_data('PoseDetection/testing/testing_data.csv')
+    
+    print("\nData Loading Summary:")
+    print(f"Training features shape: {train_features.shape}")
+    print(f"Training labels shape: {train_labels.shape}")
+    print(f"Testing features shape: {test_features.shape}")
+    print(f"Testing labels shape: {test_labels.shape}")
