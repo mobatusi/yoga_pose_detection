@@ -197,6 +197,40 @@ def split_data(train_ratio=0.8, test_ratio=0.2):
 
 
 # Task 5 --- Create the function verify_split()
+def verify_split():
+    '''
+    Verify the split of data by printing the number of items in each class directory
+    from both training and testing sets.
+    '''
+    train_dir = 'PoseDetection/training'
+    test_dir = 'PoseDetection/testing'
+    
+    print("\nVerifying data split:")
+    print("-" * 50)
+    
+    # Check training set
+    print("\nTraining Set:")
+    total_train = 0
+    for pose in YOGA_POSES:
+        class_dir = os.path.join(train_dir, pose)
+        if os.path.exists(class_dir):
+            num_images = len([f for f in os.listdir(class_dir) if f.endswith(('.jpg', '.jpeg', '.png'))])
+            total_train += num_images
+            print(f"{pose}: {num_images} images")
+    print(f"Total training images: {total_train}")
+    
+    # Check testing set
+    print("\nTesting Set:")
+    total_test = 0
+    for pose in YOGA_POSES:
+        class_dir = os.path.join(test_dir, pose)
+        if os.path.exists(class_dir):
+            num_images = len([f for f in os.listdir(class_dir) if f.endswith(('.jpg', '.jpeg', '.png'))])
+            total_test += num_images
+            print(f"{pose}: {num_images} images")
+    print(f"Total testing images: {total_test}")
+    
+    print("-" * 50)
 
 
 # Task 6 --- Store Image Data as Text
@@ -219,6 +253,6 @@ if __name__ == '__main__':
     split_data()
 
     # Task 5 --- Call the verify_split() function
-
+    verify_split()
 
     # Task 7 --- Call the save_image_to_csv() function
