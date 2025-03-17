@@ -87,6 +87,51 @@ def get_labels():
 
 
 # Task 3 --- Visualize Mediapipe's Landmarks
+def save_labeled_image(image_path):
+    '''
+    This function takes an image path, processes it with MediaPipe Pose,
+    draws the landmarks on the image, and saves the labeled image.
+    
+    Args:
+        image_path (str): Path to the input image
+    '''
+    # Read the image
+    image = cv2.imread(image_path)
+    if image is None:
+        print(f"Error: Could not read image at {image_path}")
+        return
+    
+    # Convert BGR to RGB
+    image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    
+    # Initialize MediaPipe Pose
+    with mp_pose.Pose(static_image_mode=True, min_detection_confidence=0.5) as pose:
+        # Process the image
+        results = pose.process(image_rgb)
+        
+        if results.pose_landmarks:
+            # Draw the pose landmarks on the image
+            mp_drawing.draw_landmarks(
+                image,
+                results.pose_landmarks,
+                mp_pose.POSE_CONNECTIONS,
+                mp_drawing.DrawingSpec(color=(245,117,66), thickness=2, circle_radius=2),
+                mp_drawing.DrawingSpec(color=(245,66,230), thickness=2, circle_radius=2)
+            )
+            
+            # Create output directory if it doesn't exist
+            output_dir = 'PoseDetection/labeled_images'
+            os.makedirs(output_dir, exist_ok=True)
+            
+            # Generate output filename
+            base_name = os.path.basename(image_path)
+            output_path = os.path.join(output_dir, f'labeled_{base_name}')
+            
+            # Save the labeled image
+            cv2.imwrite(output_path, image)
+            print(f"Labeled image saved to: {output_path}")
+        else:
+            print("No pose landmarks detected in the image.")
 
 
 # Task 4 --- Create the function split_data()
@@ -109,7 +154,7 @@ if __name__ == '__main__':
     print(labels)
 
     # Task 3 --- Call the save_labeled_images() function
-
+    save_labeled_image('PoseDetection/data/parent/downdog/00000000.jpg')
 
     # Task 4 --- Call the split_data() function
 
