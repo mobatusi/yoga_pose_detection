@@ -64,7 +64,7 @@ def get_labels():
     
     # Open and read the CSV file containing landmark labels
     try:
-        with open('/usercode/PoseDetection/LandmarkLabels.csv', 'r') as file:
+        with open('PoseDetection/LandmarkLabels.csv', 'r') as file:
             csv_reader = csv.reader(file)
             # Skip header if present
             next(csv_reader, None)
