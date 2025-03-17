@@ -234,6 +234,109 @@ def verify_split():
 
 
 # Task 6 --- Store Image Data as Text
+def save_image_to_csv(folder_path, output_csv):
+    '''
+    Process images in the given folder and save their landmark data to a CSV file.
+    Skips images that have already been processed and saved.
+    
+    Args:
+        folder_path (str): Path to the folder containing images
+        output_csv (str): Name of the output CSV file
+    '''
+    # Get landmark labels
+    landmark_labels = get_labels()
+    if landmark_labels is None:
+        print("Error: Could not get landmark labels")
+        return
+    
+    # Create the full output path
+    output_path = os.path.join(folder_path, output_csv)
+    
+    # Set of already processed images
+    processed_images = set()
+    
+    # If CSV file exists, read it to get list of processed images
+    if os.path.exists(output_path):
+        try:
+            with open(output_path, 'r', newline='') as csvfile:
+                reader = csv.reader(csvfile)
+                next(reader)  # Skip header
+                processed_images = {row[0] for row in reader}
+            print(f"Found {len(processed_images)} previously processed images")
+        except Exception as e:
+            print(f"Error reading existing CSV file: {str(e)}")
+            processed_images = set()
+    
+    # Create CSV file with headers if it doesn't exist
+    file_mode = 'a' if os.path.exists(output_path) else 'w'
+    with open(output_path, file_mode, newline='') as csvfile:
+        writer = csv.writer(csvfile)
+        
+        # Write header only if file is new
+        if file_mode == 'w':
+            header = ['Image_ID'] + landmark_labels + ['Class_Label']
+            writer.writerow(header)
+        
+        # Process each class directory
+        for pose_name in YOGA_POSES:
+            class_dir = os.path.join(folder_path, pose_name)
+            if not os.path.exists(class_dir):
+                print(f"Warning: Directory not found: {class_dir}")
+                continue
+            
+            # Count for this class
+            processed_count = 0
+            skipped_count = 0
+                
+            # Process each image in the class directory
+            for img_name in os.listdir(class_dir):
+                if not img_name.endswith(('.jpg', '.jpeg', '.png')):
+                    continue
+                
+                # Skip if already processed
+                if img_name in processed_images:
+                    skipped_count += 1
+                    continue
+                    
+                img_path = os.path.join(class_dir, img_name)
+                
+                # Read and process image
+                image = cv2.imread(img_path)
+                if image is None:
+                    print(f"Error: Could not read image at {img_path}")
+                    continue
+                    
+                # Convert BGR to RGB
+                image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+                
+                # Process with MediaPipe
+                with mp_pose.Pose(static_image_mode=True, min_detection_confidence=0.5) as pose_detector:
+                    results = pose_detector.process(image_rgb)
+                    
+                    if results.pose_landmarks:
+                        # Extract landmarks
+                        landmarks = []
+                        for landmark in results.pose_landmarks.landmark:
+                            landmarks.extend([landmark.x, landmark.y])
+                        
+                        # Get class label from mapping
+                        try:
+                            class_label = CLASS_MAPPING[pose_name]
+                        except KeyError:
+                            print(f"Error: No mapping found for pose '{pose_name}'. Available poses: {list(CLASS_MAPPING.keys())}")
+                            continue
+                        
+                        # Write to CSV: image name, landmarks, class label
+                        row = [img_name] + landmarks + [class_label]
+                        writer.writerow(row)
+                        processed_count += 1
+                        processed_images.add(img_name)
+                    else:
+                        print(f"No pose landmarks detected in {img_path}")
+            
+            print(f"Class {pose_name}: Processed {processed_count} new images, Skipped {skipped_count} already processed images")
+    
+    print(f"Data saved to {output_path}")
 
 
 # Task 8 --- Load and Preprocess the Data
@@ -256,3 +359,5 @@ if __name__ == '__main__':
     verify_split()
 
     # Task 7 --- Call the save_image_to_csv() function
+    save_image_to_csv('PoseDetection/training', 'training_data.csv')
+    save_image_to_csv('PoseDetection/testing', 'testing_data.csv')
