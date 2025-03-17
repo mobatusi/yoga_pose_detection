@@ -14,8 +14,15 @@ mp_pose = mp.solutions.pose
 mp_drawing = mp.solutions.drawing_utils
 
 
-
 # Task 4 --- Declare the list of directories and mapping of classes
+YOGA_POSES = ['downdog', 'goddess', 'plank', 'tree', 'warrior']
+CLASS_MAPPING = {
+    'downdog': 0,
+    'goddess': 1,
+    'plank': 2,
+    'tree': 3,
+    'warrior': 4
+}
 
 
 # Task 2 --- Landmark Detection with Mediapipe
@@ -135,6 +142,58 @@ def save_labeled_image(image_path):
 
 
 # Task 4 --- Create the function split_data()
+def split_data(train_ratio=0.8, test_ratio=0.2):
+    '''
+    Split the dataset into training and testing sets.
+    
+    Args:
+        train_ratio (float): Ratio of data to use for training (default: 0.8)
+        test_ratio (float): Ratio of data to use for testing (default: 0.2)
+    '''
+    # Base directory containing the yoga pose images
+    base_dir = 'PoseDetection/data/parent'
+    
+    # Create training and testing directories
+    train_dir = 'PoseDetection/training'
+    test_dir = 'PoseDetection/testing'
+    
+    # Create main training and testing directories
+    os.makedirs(train_dir, exist_ok=True)
+    os.makedirs(test_dir, exist_ok=True)
+    
+    # Create class-specific directories in both training and testing
+    for pose in YOGA_POSES:
+        os.makedirs(os.path.join(train_dir, pose), exist_ok=True)
+        os.makedirs(os.path.join(test_dir, pose), exist_ok=True)
+    
+    # Process each yoga pose class
+    for pose in YOGA_POSES:
+        # Get all images in the class directory
+        class_dir = os.path.join(base_dir, pose)
+        images = [f for f in os.listdir(class_dir) if f.endswith(('.jpg', '.jpeg', '.png'))]
+        
+        # Randomly shuffle the images
+        random.shuffle(images)
+        
+        # Calculate split indices
+        train_size = int(len(images) * train_ratio)
+        
+        # Split images into training and testing sets
+        train_images = images[:train_size]
+        test_images = images[train_size:]
+        
+        # Move images to respective directories
+        for img in train_images:
+            src = os.path.join(class_dir, img)
+            dst = os.path.join(train_dir, pose, img)
+            shutil.copy2(src, dst)
+            
+        for img in test_images:
+            src = os.path.join(class_dir, img)
+            dst = os.path.join(test_dir, pose, img)
+            shutil.copy2(src, dst)
+    
+    print(f"Dataset split complete. Training: {train_ratio*100}%, Testing: {test_ratio*100}%")
 
 
 # Task 5 --- Create the function verify_split()
@@ -157,7 +216,7 @@ if __name__ == '__main__':
     save_labeled_image('PoseDetection/data/parent/downdog/00000000.jpg')
 
     # Task 4 --- Call the split_data() function
-
+    split_data()
 
     # Task 5 --- Call the verify_split() function
 
