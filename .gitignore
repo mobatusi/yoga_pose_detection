@@ -170,3 +170,6 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 .DS_Store
+PoseDetection/data/parent
+PoseDetection/training/
+PoseDetection/testing/
