@@ -212,11 +212,13 @@ def verify_split():
     # Check training set
     print("\nTraining Set:")
     total_train = 0
+    class_counts = {}
     for pose in YOGA_POSES:
         class_dir = os.path.join(train_dir, pose)
         if os.path.exists(class_dir):
             num_images = len([f for f in os.listdir(class_dir) if f.endswith(('.jpg', '.jpeg', '.png'))])
             total_train += num_images
+            class_counts[pose] = {'train': num_images}
             print(f"{pose}: {num_images} images")
     print(f"Total training images: {total_train}")
     
@@ -228,8 +230,16 @@ def verify_split():
         if os.path.exists(class_dir):
             num_images = len([f for f in os.listdir(class_dir) if f.endswith(('.jpg', '.jpeg', '.png'))])
             total_test += num_images
+            class_counts[pose]['test'] = num_images
             print(f"{pose}: {num_images} images")
     print(f"Total testing images: {total_test}")
+    
+    # Print split ratios for each class
+    print("\nSplit Ratios for Each Class:")
+    for pose, counts in class_counts.items():
+        total = counts['train'] + counts['test']
+        train_ratio = counts['train'] / total
+        print(f"{pose}: {counts['train']}/{total} ({train_ratio:.2%})")
     
     print("-" * 50)
 
@@ -253,16 +263,19 @@ def save_image_to_csv(folder_path, output_csv):
     # Create the full output path
     output_path = os.path.join(folder_path, output_csv)
     
-    # Set of already processed images
+    # Set of already processed images and existing data
     processed_images = set()
+    existing_data = []
     
-    # If CSV file exists, read it to get list of processed images
+    # If CSV file exists, read it to get list of processed images and existing data
     if os.path.exists(output_path):
         try:
             with open(output_path, 'r', newline='') as csvfile:
                 reader = csv.reader(csvfile)
                 header = next(reader)  # Get header
-                processed_images = {row[0] for row in reader}
+                # Store existing data
+                existing_data = list(reader)
+                processed_images = {row[0] for row in existing_data}
             print(f"Found {len(processed_images)} previously processed images")
             
             # Verify header matches expected format
@@ -277,9 +290,11 @@ def save_image_to_csv(folder_path, output_csv):
                 # Remove the old file to create a new one with correct headers
                 os.remove(output_path)
                 processed_images = set()  # Reset processed images set
+                existing_data = []  # Reset existing data
         except Exception as e:
             print(f"Error reading existing CSV file: {str(e)}")
             processed_images = set()
+            existing_data = []
     
     # Create CSV file with headers
     with open(output_path, 'w', newline='') as csvfile:
@@ -289,6 +304,9 @@ def save_image_to_csv(folder_path, output_csv):
         header = ['Image_ID'] + landmark_labels + ['Class_Label']
         writer.writerow(header)
         print(f"Created CSV file with headers: {header}")
+        
+        # Write existing data first
+        writer.writerows(existing_data)
         
         # Process each class directory
         for pose_name in YOGA_POSES:

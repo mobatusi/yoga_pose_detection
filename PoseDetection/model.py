@@ -9,8 +9,8 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import classification_report
 import os
 
-# Import the load_and_preprocess_data function from utility
-from utility import load_and_preprocess_data, save_image_to_csv
+# Import the load_and_preprocess_data function and YOGA_POSES from utility
+from utility import load_and_preprocess_data, save_image_to_csv, YOGA_POSES
 
 class YogaPoseClassifier:
     # Task 9 --- Define the Constructor
@@ -20,11 +20,19 @@ class YogaPoseClassifier:
         '''
         self.model = xgb.XGBClassifier(
             objective='multi:softmax',
-            num_class=5,  # 5 yoga poses
-            learning_rate=0.1,
-            max_depth=6,
-            n_estimators=100,
-            random_state=42
+            num_class=len(YOGA_POSES),  # Number of yoga poses
+            learning_rate=0.05,  # Moderate learning rate
+            max_depth=5,  # Moderate tree depth
+            n_estimators=150,  # Number of trees
+            min_child_weight=3,  # Prevent overfitting
+            subsample=0.8,  # Use 80% of samples for each tree
+            colsample_bytree=0.8,  # Use 80% of features for each tree
+            gamma=0.2,  # Minimum loss reduction
+            reg_alpha=0.2,  # L1 regularization
+            reg_lambda=1.0,  # L2 regularization
+            random_state=42,
+            use_label_encoder=False,  # Prevent warning
+            eval_metric='mlogloss'  # Prevent warning
         )
         
         # Initialize scaler for feature normalization
@@ -54,6 +62,15 @@ class YogaPoseClassifier:
         print("\nTraining completed!")
         print(f"Training accuracy: {train_accuracy:.4f}")
         
+        # Print feature importance
+        feature_importance = pd.DataFrame({
+            'feature': X_train.columns,
+            'importance': self.model.feature_importances_
+        }).sort_values('importance', ascending=False)
+        
+        print("\nTop 10 Most Important Features:")
+        print(feature_importance.head(10))
+        
         return train_accuracy
 
     # Task 10 --- Define the test() function
@@ -74,6 +91,10 @@ class YogaPoseClassifier:
         # Calculate accuracy score
         accuracy = accuracy_score(y_test, y_test_pred)
         
+        # Print classification report
+        print("\nClassification Report:")
+        print(classification_report(y_test, y_test_pred, target_names=YOGA_POSES))
+        
         print(f"\nTest accuracy: {accuracy:.4f}")
         return accuracy
 
@@ -89,15 +110,23 @@ class YogaPoseClassifier:
             # Create the models directory if it doesn't exist
             os.makedirs(os.path.dirname(model_path), exist_ok=True)
             
-            # Save the model using joblib
-            joblib.dump(self.model, model_path)
-            print(f"\nModel saved to {model_path}")
+            # Save both the model and scaler
+            model_data = {
+                'model': self.model,
+                'scaler': self.scaler
+            }
+            joblib.dump(model_data, model_path)
+            print(f"\nModel and scaler saved to {model_path}")
         except Exception as e:
             print(f"\nError saving model: {str(e)}")
             # Try saving in the current directory as fallback
             fallback_path = 'yoga_pose_model.joblib'
-            joblib.dump(self.model, fallback_path)
-            print(f"Model saved to fallback location: {fallback_path}")
+            model_data = {
+                'model': self.model,
+                'scaler': self.scaler
+            }
+            joblib.dump(model_data, fallback_path)
+            print(f"Model and scaler saved to fallback location: {fallback_path}")
 
     # Task 12 --- Define the predict() function
     def predict(self, X):
