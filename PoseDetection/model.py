@@ -103,22 +103,16 @@ class YogaPoseClassifier:
         return accuracy
 
     # Task 11 --- Define the save_model() function
-    def save_model(self, model_path='yoga_pose_model.h5'):
+    def save_model(self, model_path='yoga_pose_model.joblib'):
         '''
-        Save the trained model and scaler.
+        Save the trained model using joblib.
         
         Args:
-            model_path: Path to save the model
+            model_path: Path where the model should be saved
         '''
-        # Save the neural network model
-        self.model.save(model_path)
-        
-        # Save the scaler
-        scaler_path = model_path.replace('.h5', '_scaler.joblib')
-        joblib.dump(self.scaler, scaler_path)
-        
+        # Save the model using joblib
+        joblib.dump(self.model, model_path)
         print(f"\nModel saved to {model_path}")
-        print(f"Scaler saved to {scaler_path}")
 
     # Task 12 --- Define the predict() function
     def predict(self, X):
@@ -155,4 +149,4 @@ if __name__ == '__main__':
     print(f"\nFinal Model Accuracy: {test_accuracy:.4f}")
 
     # Task 11 --- Save the model
-    classifier.save_model('yoga_pose_model.h5')
+    classifier.save_model('PoseDetection/models/yoga_pose_model.joblib')
