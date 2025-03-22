@@ -7,20 +7,10 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import classification_report
+import os
 
 # Import the load_and_preprocess_data function from utility
 from utility import load_and_preprocess_data, save_image_to_csv
-
-# Load and preprocess the data
-train_features, train_labels = load_and_preprocess_data('PoseDetection/training/training_data.csv')
-test_features, test_labels = load_and_preprocess_data('PoseDetection/testing/testing_data.csv')
-
-# Print data shapes
-print("\nData Shapes:")
-print(f"Training features: {train_features.shape}")
-print(f"Training labels: {train_labels.shape}")
-print(f"Testing features: {test_features.shape}")
-print(f"Testing labels: {test_labels.shape}")
 
 class YogaPoseClassifier:
     # Task 9 --- Define the Constructor
@@ -95,9 +85,19 @@ class YogaPoseClassifier:
         Args:
             model_path: Path where the model should be saved
         '''
-        # Save the model using joblib
-        joblib.dump(self.model, model_path)
-        print(f"\nModel saved to {model_path}")
+        try:
+            # Create the models directory if it doesn't exist
+            os.makedirs(os.path.dirname(model_path), exist_ok=True)
+            
+            # Save the model using joblib
+            joblib.dump(self.model, model_path)
+            print(f"\nModel saved to {model_path}")
+        except Exception as e:
+            print(f"\nError saving model: {str(e)}")
+            # Try saving in the current directory as fallback
+            fallback_path = 'yoga_pose_model.joblib'
+            joblib.dump(self.model, fallback_path)
+            print(f"Model saved to fallback location: {fallback_path}")
 
     # Task 12 --- Define the predict() function
     def predict(self, X):
@@ -121,9 +121,6 @@ class YogaPoseClassifier:
 
 if __name__ == '__main__':
     # First, ensure we have the CSV files with landmark data
-    from utility import save_image_to_csv
-    
-    # Create CSV files with landmark data
     print("\nCreating training data CSV...")
     save_image_to_csv('PoseDetection/training', 'training_data.csv')
     
@@ -151,4 +148,5 @@ if __name__ == '__main__':
     print(f"\nFinal Model Accuracy: {test_accuracy:.4f}")
 
     # Task 11 --- Save the model
-    classifier.save_model('PoseDetection/models/yoga_pose_model.joblib')
+    model_path = os.path.join('PoseDetection', 'models', 'yoga_pose_model.joblib')
+    classifier.save_model(model_path)

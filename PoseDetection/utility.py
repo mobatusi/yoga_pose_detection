@@ -313,44 +313,48 @@ def save_image_to_csv(folder_path, output_csv):
                     
                 img_path = os.path.join(class_dir, img_name)
                 
-                # Read and process image
-                image = cv2.imread(img_path)
-                if image is None:
-                    print(f"Error: Could not read image at {img_path}")
+                try:
+                    # Read and process image
+                    image = cv2.imread(img_path)
+                    if image is None:
+                        print(f"Error: Could not read image at {img_path}")
+                        continue
+                        
+                    # Convert BGR to RGB
+                    image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+                    
+                    # Process with MediaPipe
+                    with mp_pose.Pose(static_image_mode=True, min_detection_confidence=0.5) as pose_detector:
+                        results = pose_detector.process(image_rgb)
+                        
+                        if results.pose_landmarks:
+                            # Extract landmarks in the correct order
+                            landmarks = []
+                            for landmark in results.pose_landmarks.landmark:
+                                landmarks.extend([landmark.x, landmark.y])
+                            
+                            # Verify we have the correct number of landmarks
+                            if len(landmarks) != len(landmark_labels):
+                                print(f"Warning: Number of landmarks ({len(landmarks)}) doesn't match number of labels ({len(landmark_labels)})")
+                                continue
+                            
+                            # Get class label from mapping
+                            try:
+                                class_label = CLASS_MAPPING[pose_name]
+                            except KeyError:
+                                print(f"Error: No mapping found for pose '{pose_name}'. Available poses: {list(CLASS_MAPPING.keys())}")
+                                continue
+                            
+                            # Write to CSV: image name, landmarks, class label
+                            row = [img_name] + landmarks + [class_label]
+                            writer.writerow(row)
+                            processed_count += 1
+                            processed_images.add(img_name)
+                        else:
+                            print(f"No pose landmarks detected in {img_path}")
+                except Exception as e:
+                    print(f"Error processing image {img_path}: {str(e)}")
                     continue
-                    
-                # Convert BGR to RGB
-                image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-                
-                # Process with MediaPipe
-                with mp_pose.Pose(static_image_mode=True, min_detection_confidence=0.5) as pose_detector:
-                    results = pose_detector.process(image_rgb)
-                    
-                    if results.pose_landmarks:
-                        # Extract landmarks in the correct order
-                        landmarks = []
-                        for landmark in results.pose_landmarks.landmark:
-                            landmarks.extend([landmark.x, landmark.y])
-                        
-                        # Verify we have the correct number of landmarks
-                        if len(landmarks) != len(landmark_labels):
-                            print(f"Warning: Number of landmarks ({len(landmarks)}) doesn't match number of labels ({len(landmark_labels)})")
-                            continue
-                        
-                        # Get class label from mapping
-                        try:
-                            class_label = CLASS_MAPPING[pose_name]
-                        except KeyError:
-                            print(f"Error: No mapping found for pose '{pose_name}'. Available poses: {list(CLASS_MAPPING.keys())}")
-                            continue
-                        
-                        # Write to CSV: image name, landmarks, class label
-                        row = [img_name] + landmarks + [class_label]
-                        writer.writerow(row)
-                        processed_count += 1
-                        processed_images.add(img_name)
-                    else:
-                        print(f"No pose landmarks detected in {img_path}")
             
             print(f"Class {pose_name}: Processed {processed_count} new images, Skipped {skipped_count} already processed images")
     
@@ -361,6 +365,7 @@ def save_image_to_csv(folder_path, output_csv):
 def load_and_preprocess_data(csv_path):
     '''
     Load and preprocess data from a CSV file.
+    If the CSV file doesn't exist, it will be created by processing the images.
     
     Args:
         csv_path (str): Path to the CSV file containing the data
@@ -368,6 +373,18 @@ def load_and_preprocess_data(csv_path):
     Returns:
         tuple: (features DataFrame, numeric labels)
     '''
+    # Check if CSV file exists, if not create it
+    if not os.path.exists(csv_path):
+        print(f"\nCSV file not found at {csv_path}. Creating it now...")
+        # Determine if this is training or testing data
+        if 'training' in csv_path:
+            save_image_to_csv('PoseDetection/training', 'training_data.csv')
+        elif 'testing' in csv_path:
+            save_image_to_csv('PoseDetection/testing', 'testing_data.csv')
+        else:
+            print(f"Error: Could not determine if {csv_path} is for training or testing data")
+            return None, None
+    
     # Read the CSV file into a DataFrame
     df = pd.read_csv(csv_path)
     print(f"\nOriginal DataFrame shape: {df.shape}")
@@ -390,9 +407,21 @@ def load_and_preprocess_data(csv_path):
     features = df[landmark_labels]
     labels = df['Class_Label']
     
+    # Verify data integrity
+    if len(features) == 0:
+        print(f"Error: No data found in {csv_path}")
+        return None, None
+    
+    # Check for missing values
+    missing_values = features.isnull().sum()
+    if missing_values.any():
+        print("Warning: Found missing values in features:")
+        print(missing_values[missing_values > 0])
+    
     print(f"\nProcessed DataFrame shape: {features.shape}")
     print(f"Number of features: {len(landmark_labels)}")
     print(f"Number of samples: {len(features)}")
+    print(f"Class distribution: {labels.value_counts().sort_index()}")
     
     return features, labels
 
