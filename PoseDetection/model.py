@@ -7,11 +7,9 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import classification_report
-import tensorflow as tf
-from tensorflow.keras import layers, models
 
 # Import the load_and_preprocess_data function from utility
-from utility import load_and_preprocess_data
+from utility import load_and_preprocess_data, save_image_to_csv
 
 # Load and preprocess the data
 train_features, train_labels = load_and_preprocess_data('PoseDetection/training/training_data.csv')
@@ -28,58 +26,45 @@ class YogaPoseClassifier:
     # Task 9 --- Define the Constructor
     def __init__(self):
         '''
-        Initialize the YogaPoseClassifier with a neural network model.
+        Initialize the YogaPoseClassifier with an XGBoost model.
         '''
-        self.model = models.Sequential([
-            layers.Dense(128, activation='relu', input_shape=(66,)),  # 33 landmarks * 2 coordinates
-            layers.Dropout(0.3),
-            layers.Dense(64, activation='relu'),
-            layers.Dropout(0.3),
-            layers.Dense(32, activation='relu'),
-            layers.Dense(5, activation='softmax')  # 5 yoga poses
-        ])
-        
-        # Compile the model
-        self.model.compile(
-            optimizer='adam',
-            loss='sparse_categorical_crossentropy',
-            metrics=['accuracy']
+        self.model = xgb.XGBClassifier(
+            objective='multi:softmax',
+            num_class=5,  # 5 yoga poses
+            learning_rate=0.1,
+            max_depth=6,
+            n_estimators=100,
+            random_state=42
         )
         
         # Initialize scaler for feature normalization
         self.scaler = StandardScaler()
         
-        print("YogaPoseClassifier initialized with neural network model")
+        print("YogaPoseClassifier initialized with XGBoost model")
 
     # Task 9 --- Define the train() function
-    def train(self, X_train, y_train, epochs=50, batch_size=32):
+    def train(self, X_train, y_train):
         '''
         Train the model on the provided data.
         
         Args:
             X_train: Training features
             y_train: Training labels
-            epochs: Number of training epochs
-            batch_size: Batch size for training
         '''
         # Scale the features
         X_train_scaled = self.scaler.fit_transform(X_train)
         
         # Train the model
-        history = self.model.fit(
-            X_train_scaled,
-            y_train,
-            epochs=epochs,
-            batch_size=batch_size,
-            validation_split=0.2,
-            verbose=1
-        )
+        self.model.fit(X_train_scaled, y_train)
+        
+        # Get training accuracy
+        train_pred = self.predict(X_train)
+        train_accuracy = accuracy_score(y_train, train_pred)
         
         print("\nTraining completed!")
-        print(f"Final training accuracy: {history.history['accuracy'][-1]:.4f}")
-        print(f"Final validation accuracy: {history.history['val_accuracy'][-1]:.4f}")
+        print(f"Training accuracy: {train_accuracy:.4f}")
         
-        return history
+        return train_accuracy
 
     # Task 10 --- Define the test() function
     def test(self, X_test, y_test):
@@ -120,7 +105,7 @@ class YogaPoseClassifier:
         Make predictions on new data.
         
         Args:
-            X: Input features
+            X: Input features (DataFrame)
             
         Returns:
             Predicted class labels
@@ -128,21 +113,38 @@ class YogaPoseClassifier:
         # Scale the input features
         X_scaled = self.scaler.transform(X)
         
-        # Get predictions
+        # Get predictions using XGBoost
         predictions = self.model.predict(X_scaled)
-        predicted_classes = np.argmax(predictions, axis=1)
         
-        return predicted_classes
+        return predictions
 
 
 if __name__ == '__main__':
-    # Task 8 --- Call the load_and_preprocess_data() function
+    # First, ensure we have the CSV files with landmark data
+    from utility import save_image_to_csv
+    
+    # Create CSV files with landmark data
+    print("\nCreating training data CSV...")
+    save_image_to_csv('PoseDetection/training', 'training_data.csv')
+    
+    print("\nCreating testing data CSV...")
+    save_image_to_csv('PoseDetection/testing', 'testing_data.csv')
+    
+    # Now load and preprocess the data
+    print("\nLoading and preprocessing data...")
     train_features, train_labels = load_and_preprocess_data('PoseDetection/training/training_data.csv')
     test_features, test_labels = load_and_preprocess_data('PoseDetection/testing/testing_data.csv')
 
+    # Print data shapes
+    print("\nData Shapes:")
+    print(f"Training features: {train_features.shape}")
+    print(f"Training labels: {train_labels.shape}")
+    print(f"Testing features: {test_features.shape}")
+    print(f"Testing labels: {test_labels.shape}")
+
     # Task 9 --- Build and Train the model
     classifier = YogaPoseClassifier()
-    history = classifier.train(train_features, train_labels, epochs=50, batch_size=32)
+    train_accuracy = classifier.train(train_features, train_labels)
 
     # Task 10 --- Find Model's Accuracy
     test_accuracy = classifier.test(test_features, test_labels)

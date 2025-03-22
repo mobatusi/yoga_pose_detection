@@ -61,7 +61,6 @@ def extract_features(image_path):
 
 
 # Task 2--- Landmark Detection with Mediapipe
-# Define the get_labels() function here
 def get_labels():
     '''
     This function reads the landmark labels from the CSV file and returns a list of labels.
@@ -73,15 +72,17 @@ def get_labels():
     try:
         with open('PoseDetection/LandmarkLabels.csv', 'r') as file:
             csv_reader = csv.reader(file)
-            # Skip header if present
-            next(csv_reader, None)
+            # Get the first row which contains all landmark names
+            row = next(csv_reader)
             
-            # Process each landmark label
-            for row in csv_reader:
-                if row:  # Check if row is not empty
-                    label = row[0]  # Assuming label is in the first column
+            # Process each landmark name
+            for landmark_name in row:
+                if landmark_name:  # Check if name is not empty
                     # Create x and y coordinate labels for each landmark
-                    landmark_labels.extend([f"{label}_x", f"{label}_y"])
+                    landmark_labels.extend([f"{landmark_name}_x", f"{landmark_name}_y"])
+            
+            print(f"Loaded {len(landmark_labels)} landmark labels")
+            print(f"First few labels: {landmark_labels[:5]}")
     
     except FileNotFoundError:
         print("Error: LandmarkLabels.csv file not found")
@@ -260,22 +261,34 @@ def save_image_to_csv(folder_path, output_csv):
         try:
             with open(output_path, 'r', newline='') as csvfile:
                 reader = csv.reader(csvfile)
-                next(reader)  # Skip header
+                header = next(reader)  # Get header
                 processed_images = {row[0] for row in reader}
             print(f"Found {len(processed_images)} previously processed images")
+            
+            # Verify header matches expected format
+            expected_header = ['Image_ID'] + landmark_labels + ['Class_Label']
+            if header != expected_header:
+                print(f"Warning: CSV file has incorrect headers. Expected: {expected_header}")
+                print(f"Found: {header}")
+                # Create backup of old file
+                backup_path = output_path + '.backup'
+                os.rename(output_path, backup_path)
+                print(f"Created backup of old file at: {backup_path}")
+                # Remove the old file to create a new one with correct headers
+                os.remove(output_path)
+                processed_images = set()  # Reset processed images set
         except Exception as e:
             print(f"Error reading existing CSV file: {str(e)}")
             processed_images = set()
     
-    # Create CSV file with headers if it doesn't exist
-    file_mode = 'a' if os.path.exists(output_path) else 'w'
-    with open(output_path, file_mode, newline='') as csvfile:
+    # Create CSV file with headers
+    with open(output_path, 'w', newline='') as csvfile:
         writer = csv.writer(csvfile)
         
-        # Write header only if file is new
-        if file_mode == 'w':
-            header = ['Image_ID'] + landmark_labels + ['Class_Label']
-            writer.writerow(header)
+        # Always write header
+        header = ['Image_ID'] + landmark_labels + ['Class_Label']
+        writer.writerow(header)
+        print(f"Created CSV file with headers: {header}")
         
         # Process each class directory
         for pose_name in YOGA_POSES:
@@ -314,10 +327,15 @@ def save_image_to_csv(folder_path, output_csv):
                     results = pose_detector.process(image_rgb)
                     
                     if results.pose_landmarks:
-                        # Extract landmarks
+                        # Extract landmarks in the correct order
                         landmarks = []
                         for landmark in results.pose_landmarks.landmark:
                             landmarks.extend([landmark.x, landmark.y])
+                        
+                        # Verify we have the correct number of landmarks
+                        if len(landmarks) != len(landmark_labels):
+                            print(f"Warning: Number of landmarks ({len(landmarks)}) doesn't match number of labels ({len(landmark_labels)})")
+                            continue
                         
                         # Get class label from mapping
                         try:
@@ -352,13 +370,29 @@ def load_and_preprocess_data(csv_path):
     '''
     # Read the CSV file into a DataFrame
     df = pd.read_csv(csv_path)
+    print(f"\nOriginal DataFrame shape: {df.shape}")
+    print(f"Columns: {df.columns.tolist()}")
     
-    # Drop the Image_ID column
-    df = df.drop('Image_ID', axis=1)
+    # Get landmark labels
+    landmark_labels = get_labels()
+    if landmark_labels is None:
+        print("Error: Could not get landmark labels")
+        return None, None
     
-    # Separate features and labels
-    features = df.drop('Class_Label', axis=1)
+    # Verify that the CSV has the correct columns
+    expected_columns = ['Image_ID'] + landmark_labels + ['Class_Label']
+    missing_columns = [col for col in expected_columns if col not in df.columns]
+    if missing_columns:
+        print(f"Error: Missing columns in CSV: {missing_columns}")
+        return None, None
+    
+    # Drop the Image_ID column and separate features and labels
+    features = df[landmark_labels]
     labels = df['Class_Label']
+    
+    print(f"\nProcessed DataFrame shape: {features.shape}")
+    print(f"Number of features: {len(landmark_labels)}")
+    print(f"Number of samples: {len(features)}")
     
     return features, labels
 
