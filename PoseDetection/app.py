@@ -23,6 +23,7 @@ LANDMARK_LABELS_PATH = os.path.join(BASE_DIR, 'LandmarkLabels.csv')
 UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads')
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
+    print(f"Created upload directory at: {UPLOAD_FOLDER}")
 
 # Check required files
 if not os.path.exists(MODEL_PATH):
@@ -54,22 +55,27 @@ def process():
         if not file.filename.lower().endswith(('.jpg', '.jpeg', '.png')):
             return jsonify({'error': 'Invalid file type. Please upload .jpg, .jpeg, or .png files only.'}), 400
         
-        # Save the uploaded file temporarily
-        with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(file.filename)[1]) as temp_file:
-            file.save(temp_file.name)
-            temp_path = temp_file.name
+        # Ensure upload directory exists
+        if not os.path.exists(UPLOAD_FOLDER):
+            os.makedirs(UPLOAD_FOLDER)
+            print(f"Created upload directory at: {UPLOAD_FOLDER}")
+        
+        # Generate a unique filename
+        filename = os.path.join(UPLOAD_FOLDER, file.filename)
+        
+        # Save the file
+        file.save(filename)
+        print(f"File saved successfully at: {filename}")
         
         # Process the image and get prediction
-        predicted_pose = predict_class(temp_path)
-        
-        # Clean up the temporary file
-        os.unlink(temp_path)
+        predicted_pose = predict_class(filename)
         
         if predicted_pose:
             return jsonify({
                 'success': True,
                 'prediction': predicted_pose,
-                'message': f'Predicted pose: {predicted_pose}'
+                'message': f'Predicted pose: {predicted_pose}',
+                'file_path': filename
             })
         else:
             return jsonify({
@@ -100,6 +106,10 @@ def predict_class(image_path):
         if not os.path.exists(MODEL_PATH):
             raise FileNotFoundError(f"Model file not found at {MODEL_PATH}. Please train the model first.")
         
+        # Check if landmark labels file exists
+        if not os.path.exists(LANDMARK_LABELS_PATH):
+            raise FileNotFoundError(f"Landmark labels file not found at {LANDMARK_LABELS_PATH}")
+        
         # Load the pretrained model and scaler
         print(f"Loading model from: {MODEL_PATH}")
         model_data = joblib.load(MODEL_PATH)
@@ -107,11 +117,13 @@ def predict_class(image_path):
         scaler = model_data['scaler']
         
         # Get landmark labels
+        print(f"Loading landmark labels from: {LANDMARK_LABELS_PATH}")
         landmark_labels = get_labels()
         if landmark_labels is None:
             raise Exception("Failed to get landmark labels")
         
         # Extract features from the image
+        print(f"Extracting features from: {image_path}")
         features = extract_features(image_path)
         if features is None:
             raise Exception("Failed to extract features from image")
@@ -140,14 +152,14 @@ def predict_class(image_path):
 if __name__ == '__main__':
     # Task 12: Use the Model
     # Test the model with a sample image
-    # test_image_path = os.path.join('testing', 'downdog', '00000000.jpg')
-    # print(f"\nTesting prediction with image: {test_image_path}")
+    test_image_path = os.path.join(BASE_DIR, 'testing', 'downdog', '00000000.jpg')
+    print(f"\nTesting prediction with image: {test_image_path}")
     
-    # predicted_pose = predict_class(test_image_path)
-    # if predicted_pose:
-    #     print(f"Predicted pose: {predicted_pose}")
-    # else:
-    #     print("Failed to predict pose")
+    predicted_pose = predict_class(test_image_path)
+    if predicted_pose:
+        print(f"Predicted pose: {predicted_pose}")
+    else:
+        print("Failed to predict pose")
 
     # Run the Flask app on port 5001
     app.run(debug=True, port=5001, host='0.0.0.0')
