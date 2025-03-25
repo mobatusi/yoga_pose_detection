@@ -11,17 +11,75 @@
         function displayImage(imageId, file) {
             const imgElement = document.getElementById(imageId);
             imgElement.src = URL.createObjectURL(file);
+            imgElement.style.display = 'block';  // Show the image when loaded
         }
 
         // Task 15 & Task 16: Handle Upload Request to Backend
-    
+        $(document).ready(function() {
+            $('#upload-button').click(function() {
+                const fileInput = $('#file1');
+                const file = fileInput[0].files[0];
+                
+                if (!file) {
+                    $('#result-text').html('<div class="error">Please select an image first.</div>');
+                    return;
+                }
 
+                // Create FormData object
+                const formData = new FormData();
+                formData.append('file1', file);
+
+                // Show loading message
+                $('#result-text').html('<div>Processing image...</div>');
+
+                // Send AJAX request
+                $.ajax({
+                    url: '/process',
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function(response) {
+                        if (response.success) {
+                            $('#result-text').html(`<div class="success">${response.message}</div>`);
+                        } else {
+                            $('#result-text').html(`<div class="error">Error: ${response.error}</div>`);
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        $('#result-text').html(`<div class="error">Error: ${error}</div>`);
+                    }
+                });
+            });
+        });
     </script>
 </head>
 <body>
     <h1>Detect Yoga Pose Using Mediapipe</h1>
     <!-- Task 13: Design the frontend of the application -->
+    <div class="upload-container">
+        <label for="file1" class="upload-button">Choose Image</label>
+        <input type="file" 
+               id="file1" 
+               name="file1" 
+               accept=".jpg,.jpeg,.png" 
+               onchange="displayImage('image1', this.files[0])" 
+               style="display: none;">
+    </div>
 
+    <!-- Container for displaying the selected image -->
+    <div class="image-container">
+        <img id="image1" src="" alt="Selected Image" style="display: none; max-width: 100%; height: auto;">
+    </div>
 
+    <!-- Upload button for processing -->
+    <div class="button-container">
+        <button id="upload-button" class="process-button">Upload and Process</button>
+    </div>
+
+    <!-- Container for displaying results -->
+    <div id="result-text" class="result-container">
+        <!-- Results will be displayed here -->
+    </div>
 </body>
 </html>

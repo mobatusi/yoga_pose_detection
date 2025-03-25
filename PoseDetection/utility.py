@@ -68,9 +68,13 @@ def get_labels():
     # Initialize empty list to store landmark labels
     landmark_labels = []
     
+    # Get the base directory
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    labels_path = os.path.join(base_dir, 'LandmarkLabels.csv')
+    
     # Open and read the CSV file containing landmark labels
     try:
-        with open('PoseDetection/LandmarkLabels.csv', 'r') as file:
+        with open(labels_path, 'r') as file:
             csv_reader = csv.reader(file)
             # Get the first row which contains all landmark names
             row = next(csv_reader)
@@ -85,7 +89,7 @@ def get_labels():
             print(f"First few labels: {landmark_labels[:5]}")
     
     except FileNotFoundError:
-        print("Error: LandmarkLabels.csv file not found")
+        print(f"Error: LandmarkLabels.csv file not found at {labels_path}")
         return None
     except Exception as e:
         print(f"Error reading CSV file: {str(e)}")
