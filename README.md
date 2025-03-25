@@ -78,22 +78,6 @@ http://localhost:5001
 - JPG/JPEG
 - PNG
 
-## Error Handling
-The application includes comprehensive error handling for:
-- Invalid file types
-- Missing files
-- Processing errors
-- Model loading issues
-- Feature extraction failures
-
-## Logging
-The application logs important events and errors to help with debugging:
-- File uploads
-- Model loading
-- Feature extraction
-- Prediction results
-- Error messages
-
 ## References
 - [Yoga Pose Detection Using MediaPipe Pose](https://www.educative.io/projects/yoga-pose-detection-using-mediapipe-pose)
 - [MediaPipe Pose Documentation](https://developers.google.com/mediapipe/solutions/vision/pose_landmarker)
