@@ -92,5 +92,3 @@ if __name__ == '__main__':
         print(f"Predicted pose: {predicted_pose}")
     else:
         print("Failed to predict pose")
-
-    app.run(debug=True)
