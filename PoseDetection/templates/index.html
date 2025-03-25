@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Image Uploader</title>
+    <title>Yoga Pose Detection</title>
     <!-- Link to the external CSS file -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"> 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -21,7 +21,7 @@
                 const file = fileInput[0].files[0];
                 
                 if (!file) {
-                    $('#result-text').html('<div class="error">Please select an image first.</div>');
+                    alert('Please select an image first.');
                     return;
                 }
 
@@ -29,24 +29,30 @@
                 const formData = new FormData();
                 formData.append('file1', file);
 
+                // Clear previous results
+                $('#result-text').html('');
+
                 // Show loading message
-                $('#result-text').html('<div>Processing image...</div>');
+                $('#result-text').html('<div class="loading">Processing image...</div>');
 
                 // Send AJAX request
                 $.ajax({
-                    url: '/process',
+                    url: '/processing',
                     type: 'POST',
                     data: formData,
                     processData: false,
                     contentType: false,
                     success: function(response) {
                         if (response.success) {
+                            alert('Image uploaded successfully!');
                             $('#result-text').html(`<div class="success">${response.message}</div>`);
                         } else {
+                            alert('Error: ' + response.error);
                             $('#result-text').html(`<div class="error">Error: ${response.error}</div>`);
                         }
                     },
                     error: function(xhr, status, error) {
+                        alert('Error uploading image: ' + error);
                         $('#result-text').html(`<div class="error">Error: ${error}</div>`);
                     }
                 });
@@ -55,31 +61,32 @@
     </script>
 </head>
 <body>
-    <h1>Detect Yoga Pose Using Mediapipe</h1>
-    <!-- Task 13: Design the frontend of the application -->
-    <div class="upload-container">
-        <label for="file1" class="upload-button">Choose Image</label>
-        <input type="file" 
-               id="file1" 
-               name="file1" 
-               accept=".jpg,.jpeg,.png" 
-               onchange="displayImage('image1', this.files[0])" 
-               style="display: none;">
-    </div>
+    <div class="container">
+        <h1>Yoga Pose Detection</h1>
+        
+        <div class="upload-section">
+            <div class="upload-container">
+                <label for="file1" class="upload-button">Choose Image</label>
+                <input type="file" 
+                       id="file1" 
+                       name="file1" 
+                       accept=".jpg,.jpeg,.png" 
+                       onchange="displayImage('image1', this.files[0])" 
+                       style="display: none;">
+            </div>
 
-    <!-- Container for displaying the selected image -->
-    <div class="image-container">
-        <img id="image1" src="" alt="Selected Image" style="display: none; max-width: 100%; height: auto;">
-    </div>
+            <div class="image-container">
+                <img id="image1" src="" alt="Selected Image" style="display: none;">
+            </div>
 
-    <!-- Upload button for processing -->
-    <div class="button-container">
-        <button id="upload-button" class="process-button">Upload and Process</button>
-    </div>
+            <div class="button-container">
+                <button id="upload-button" class="process-button">Upload and Process</button>
+            </div>
+        </div>
 
-    <!-- Container for displaying results -->
-    <div id="result-text" class="result-container">
-        <!-- Results will be displayed here -->
+        <div id="result-text" class="result-container">
+            <!-- Results will be displayed here -->
+        </div>
     </div>
 </body>
 </html>
